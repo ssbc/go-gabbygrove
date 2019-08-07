@@ -179,8 +179,9 @@ func (tr *Transfer) ValueContent() *ssb.Value {
 	msg.Author = *aref.(*ssb.FeedRef)
 	msg.Sequence = margaret.BaseSeq(evt.Sequence)
 	msg.Hash = "sha256"
-	// msg.Timestamp = float64(sm.Timestamp.Unix() * 1000)
+	msg.Timestamp = float64(tr.Timestamp().Unix() * 1000)
 	msg.Content = tr.Content
+	msg.Signature = "invalid - mapped JSON message from CBOR"
 	return &msg
 }
 
