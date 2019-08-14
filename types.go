@@ -3,7 +3,10 @@ package gabbygrove
 import (
 	"bytes"
 	"encoding/json"
+	"log"
 	"time"
+
+	"github.com/cryptix/go/encodedTime"
 
 	"github.com/pkg/errors"
 	"github.com/ugorji/go/codec"
@@ -147,7 +150,12 @@ func (tr *Transfer) Previous() *ssb.MessageRef {
 	return mref.(*ssb.MessageRef)
 }
 
-func (tr *Transfer) Timestamp() time.Time {
+func (tr *Transfer) Received() time.Time {
+	log.Println("received time is spoofed to claimed")
+	return tr.Claimed()
+}
+
+func (tr *Transfer) Claimed() time.Time {
 	evt, err := tr.getEvent()
 	if err != nil {
 		panic(err)
@@ -179,7 +187,7 @@ func (tr *Transfer) ValueContent() *ssb.Value {
 	msg.Author = *aref.(*ssb.FeedRef)
 	msg.Sequence = margaret.BaseSeq(evt.Sequence)
 	msg.Hash = "sha256"
-	msg.Timestamp = float64(tr.Timestamp().Unix() * 1000)
+	msg.Timestamp = encodedTime.Millisecs(tr.Claimed())
 	msg.Content = tr.Content
 	msg.Signature = "invalid - mapped JSON message from CBOR"
 	return &msg
