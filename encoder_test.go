@@ -3,6 +3,8 @@ package gabbygrove
 import (
 	"bytes"
 	"encoding/hex"
+	"io/ioutil"
+	"math"
 	"testing"
 	"time"
 
@@ -12,7 +14,7 @@ import (
 	"go.cryptoscope.co/ssb"
 )
 
-var i = time.Date(2019, 07, 30, 0, 0, 0, 0, time.UTC).Unix()
+var i = time.Date(1969, 12, 31, 23, 59, 55, 0, time.UTC).Unix()
 
 func fakeNow() time.Time {
 	t := time.Unix(i, 0)
@@ -33,7 +35,7 @@ func TestEncoder(t *testing.T) {
 	t.Log("kp:", kp.Id.Ref())
 
 	var msgs = []interface{}{
-		"foo.box",
+		[]byte("foo.box"),
 		map[string]interface{}{
 			"type": "test",
 			"i":    1,
@@ -46,9 +48,9 @@ func TestEncoder(t *testing.T) {
 	}
 
 	wantHex := []string{
-		"83585785f6d9041a582101aed3dab65ce9e0d6c50d46fceffb552296ed21b6e0b537a6a0184575ce8f5cbd011a5d3f8880830107d9041a582103e806ecf2b7c37fb06dc198a9b905be64ee3fdb8237ef80d316acb7c85bbf5f02584091f1b00c37285fc517d4c87fda951a6bc38aee7e7dcb8e3ce538289c5cba0e93a5734bd6853d11fa29ddf0bfe5bc4b5049ef4681caa1baa355cd2ffc9419110447666f6f2e626f78",
-		"83587c85d9041a5821020113f4dd8c981d1d87bc7f46cf86e8e7b0fb774f839930dd38d6a13f69d9693dd9041a582101aed3dab65ce9e0d6c50d46fceffb552296ed21b6e0b537a6a0184575ce8f5cbd021a5d3f8881830116d9041a58210395cca4fa7b24abc6049683e716292b00c49509be147aa024c06286bd9b7dbda85840afe8658c6f5229951db4db82f62e9d930b6cd8f155c5d47586556012ed9c560487c05aae58a2b66970cbab666e43890deb01f33e5281b0f9c7e22f68a437af09567b2269223a312c2274797065223a2274657374227d0a",
-		"83587d85d9041a582102f89a19b59a551b394679bef624816cf0b7a0edb3053de3153b18cbf100b41606d9041a582101aed3dab65ce9e0d6c50d46fceffb552296ed21b6e0b537a6a0184575ce8f5cbd031a5d3f888283011869d9041a58210327d0b22f26328f03ffce2a7c66b2ee27e337ca5d28cdc89ead668f1dd7f0218b584046d73d9b193871c9c6624980a037232161b4189d2725b2beb7011fd29bd439aa3aee5418065df32a475fff82d230f2a884609ee9d6b91d203ca380fc12dce80c58697b22636f6e74616374223a224072745061746c7a70344e624644556238372f745649706274496262677454656d6f42684664633650584c303d2e6767666565642d7631222c2273706563746174696e67223a747275652c2274797065223a22636f6e74616374227d0a",
+		"83585385f6d9041a582101aed3dab65ce9e0d6c50d46fceffb552296ed21b6e0b537a6a0184575ce8f5cbd0124830007d9041a582103e806ecf2b7c37fb06dc198a9b905be64ee3fdb8237ef80d316acb7c85bbf5f02584034ec2580ccab434eb6b5510ad9d80261d592e93b6561497177b3167960fb7335384c161b342fe11682a25e79f9b65549c851fe757e55e4364166d0fdc520150647666f6f2e626f78",
+		"83587885d9041a582102187e31c8d336624415cb5003044e30683189b272cb9d8d05fff946b0bf2c6888d9041a582101aed3dab65ce9e0d6c50d46fceffb552296ed21b6e0b537a6a0184575ce8f5cbd0223830116d9041a58210395cca4fa7b24abc6049683e716292b00c49509be147aa024c06286bd9b7dbda85840d3267fe0905bc3f1da49a7a848779b7596b5b8cacf002a3a097a0c01ce0bc158ced0e32777d4f8836da6a199c767d791f5551c2914da4d46fa31cec67129e70e567b2269223a312c2274797065223a2274657374227d0a",
+		"83587985d9041a582102d8846f26344fb0fcdb6dc6a0923affaedd22091d2ee156efe4eea397ef5c590dd9041a582101aed3dab65ce9e0d6c50d46fceffb552296ed21b6e0b537a6a0184575ce8f5cbd032283011869d9041a58210327d0b22f26328f03ffce2a7c66b2ee27e337ca5d28cdc89ead668f1dd7f0218b584087c8bdddc615a4d12113bedfa8b7dbed05dad3b003464bbdcdfe315f28e5113b6de1a664ca89c9f0bf5ade3d4af9d3887d1bf2d0c570f7394ab6c2685eb8800258697b22636f6e74616374223a224072745061746c7a70344e624644556238372f745649706274496262677454656d6f42684664633650584c303d2e6767666565642d7631222c2273706563746174696e67223a747275652c2274797065223a22636f6e74616374227d0a",
 	}
 
 	var prevRef *BinaryRef
@@ -96,13 +98,15 @@ func TestEncoder(t *testing.T) {
 		a.Equal(seq, evt.Sequence)
 
 		r.NotEqual(0, evt.Timestamp)
-		a.EqualValues(0x5d3f8880+msgidx, evt.Timestamp)
+		a.EqualValues(-5+msgidx, evt.Timestamp)
 		if msgidx == 0 {
 			a.Nil(evt.Previous, "evt[%02d] has no previous", msgidx)
+			a.Equal(ContentTypeArbitrary, evt.Content.Type)
 		} else {
 			a.NotNil(evt.Previous, "evt[%02d] has previous", msgidx)
+			a.Equal(ContentTypeJSON, evt.Content.Type)
 		}
-		r.Equal(ContentTypeJSON, evt.Content.Type)
+
 		a.NotEqual(0, evt.Content.Size)
 	}
 }
@@ -125,6 +129,79 @@ func TestEvtDecode(t *testing.T) {
 	r.EqualValues("!J9CyLyYyjwP/zip8ZrLuJ+M3yl0ozcierWaPHdfwIYs=.gabby-v1-content", evt.Content.Hash.Ref())
 	r.Equal(uint64(3), evt.Sequence)
 	r.EqualValues(0x5d3f8882, evt.Timestamp)
+}
+func TestEncodeLargestMsg(t *testing.T) {
+	r := require.New(t)
+	dead := bytes.Repeat([]byte("dead"), 8)
+	kp, err := ssb.NewKeyPair(bytes.NewReader(dead))
+	r.NoError(err)
+	kp.Id.Algo = ssb.RefAlgoFeedGabby
+
+	now = fakeNow
+
+	largeMsg := bytes.Repeat([]byte("X"), math.MaxUint16)
+
+	e := NewEncoder(kp)
+	seq := uint64(9999999)
+	fakeRef, err := fromRef(&ssb.MessageRef{
+		Algo: ssb.RefAlgoMessageGabby,
+		Hash: bytes.Repeat([]byte("b4ut"), 8),
+	})
+	r.NoError(err)
+	tr, _, err := e.Encode(seq, fakeRef, largeMsg)
+	r.NoError(err, "Encode worked!!")
+	r.NotNil(tr)
+	trcbor, err := tr.MarshalCBOR()
+	r.NoError(err)
+
+	t.Log("len evt:", len(tr.Event))
+	t.Log("len total-content:", len(trcbor)-math.MaxUint16)
+
+	ioutil.WriteFile(t.Name(), trcbor, 0700)
+	var gotTr Transfer
+	err = gotTr.UnmarshalCBOR(trcbor)
+	r.NoError(err)
+
+}
+
+func TestEncodeTooLarge(t *testing.T) {
+	r := require.New(t)
+	a := assert.New(t)
+	dead := bytes.Repeat([]byte("dead"), 8)
+	kp, err := ssb.NewKeyPair(bytes.NewReader(dead))
+	r.NoError(err)
+	kp.Id.Algo = ssb.RefAlgoFeedGabby
+
+	now = fakeNow
+
+	tooLargeMsg := bytes.Repeat([]byte("A"), math.MaxUint16+10)
+
+	e := NewEncoder(kp)
+	seq := uint64(1)
+	tr, msgRef, err := e.Encode(seq, nil, tooLargeMsg)
+	r.Error(err, "Encode worked!!")
+	if !a.Nil(tr) {
+		trcbor, err := tr.MarshalCBOR()
+		r.NoError(err)
+		ioutil.WriteFile(t.Name(), trcbor, 0700)
+	}
+	r.Nil(msgRef)
+}
+
+func TestDecodeContentTooLarge(t *testing.T) {
+	r := require.New(t)
+	// disable the error check in TestEncodeTooLarge to get this data
+	var input = "83585385f6d9041a582101aed3dab65ce9e0d6c50d46fceffb552296ed21b6e0b537a6a0184575ce8f5cbd0124830009d9041a582103e083c9bbcf9d9a5e096f3282216242afe6ec263b6b03b88b7aa509a1ef59d3b25840763688ad9221a30cf05ef71d1e7daa2824741fa0981c67114f1cb0c6cbd63edee8f022fd52a2104eeee0d690995a44c362f971fe34c0531689ae8ae6d75a0f0a5a00010009"
+	input += string(bytes.Repeat([]byte("41"), math.MaxUint16+10))
+
+	data, err := hex.DecodeString(input)
+	r.NoError(err)
+	r.NotNil(data)
+
+	var tr Transfer
+	err = tr.UnmarshalCBOR(data)
+	r.Error(err, "unmarshal of too large object worked")
+
 }
 
 func benchmarkEncoder(i int, b *testing.B) {

@@ -3,7 +3,9 @@ package gabbygrove
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"log"
+	"math"
 	"time"
 
 	"github.com/cryptix/go/encodedTime"
@@ -20,9 +22,14 @@ type Event struct {
 	Previous  *BinaryRef // %... Metadata hashsha
 	Author    *BinaryRef
 	Sequence  uint64
-	Timestamp uint64
+	Timestamp int64
 	Content   Content
 }
+
+// 1 byte to frame the array
+// 5 additional bytes for framing of a binRef
+// 1 additional byte to frame a (u)int64
+const maxEventSize = 1 + 2*(33+5) + 2*(8+1) + maxContentSize
 
 func (evt Event) MarshalCBOR() ([]byte, error) {
 	var evtBuf bytes.Buffer
@@ -34,23 +41,30 @@ func (evt Event) MarshalCBOR() ([]byte, error) {
 }
 
 func (evt *Event) UnmarshalCBOR(data []byte) error {
-	evtDec := codec.NewDecoder(bytes.NewReader(data), GetCBORHandle())
+	r := bytes.NewReader(data)
+	evtDec := codec.NewDecoder(io.LimitReader(r, maxEventSize), GetCBORHandle())
 	return errors.Wrapf(evtDec.Decode(evt), "gabbyGrove/Event: failed to decode")
 }
 
 type ContentType uint
 
 const (
-	ContentTypeUnknown ContentType = iota
+	ContentTypeArbitrary ContentType = iota
 	ContentTypeJSON
 	ContentTypeCBOR
 )
 
 type Content struct {
 	Type ContentType
-	Size uint64
+	Size uint16
 	Hash *BinaryRef
 }
+
+// 1 byte to frame the array
+// 1 byte for a valid type
+// 2 byte for the size
+// 5 additional bytes for framing a binRef
+const maxContentSize = 1 + 1 + 2 + (33 + 5)
 
 type Transfer struct {
 	Event   []byte
@@ -60,18 +74,37 @@ type Transfer struct {
 	Content   []byte
 }
 
+// 1 byte to frame the array
+// 2 additional bytes for "small" byte strings
+// 3 additonal bytes for a byte string up to 64k
+const maxTransferSize = 1 + (2 + maxEventSize) + (2 + ed25519.SignatureSize) + (3 + math.MaxUint16)
+
 func (tr Transfer) MarshalCBOR() ([]byte, error) {
 	var evtBuf bytes.Buffer
 	enc := codec.NewEncoder(&evtBuf, GetCBORHandle())
 	if err := enc.Encode(tr); err != nil {
-		return nil, errors.Wrap(err, "failed to encode metadata")
+		return nil, errors.Wrap(err, "failed to encode transfer")
 	}
 	return evtBuf.Bytes(), nil
 }
 
 func (tr *Transfer) UnmarshalCBOR(data []byte) error {
-	evtDec := codec.NewDecoder(bytes.NewReader(data), GetCBORHandle())
-	return evtDec.Decode(tr)
+	r := io.LimitReader(bytes.NewReader(data), maxTransferSize)
+	evtDec := codec.NewDecoder(r, GetCBORHandle())
+	if err := evtDec.Decode(tr); err != nil {
+		return errors.Wrap(err, "failed to decode transfer object")
+	}
+	// check sizes
+	if len(tr.Content) > math.MaxUint16 {
+		return errors.Errorf("gabbygrove/transfer: content too large")
+	}
+	if len(tr.Signature) != ed25519.SignatureSize {
+		return errors.Errorf("gabbygrove/transfer: wrong signature size")
+	}
+	if len(tr.Event) > maxEventSize {
+		return errors.Errorf("gabbygrove/transfer: event too large")
+	}
+	return nil
 }
 
 func (tr *Transfer) UnmarshaledEvent() (*Event, error) {
@@ -186,7 +219,7 @@ func (tr *Transfer) ValueContent() *ssb.Value {
 	}
 	msg.Author = *aref.(*ssb.FeedRef)
 	msg.Sequence = margaret.BaseSeq(evt.Sequence)
-	msg.Hash = "sha256"
+	msg.Hash = "gabbygrove-v1"
 	msg.Timestamp = encodedTime.Millisecs(tr.Claimed())
 	msg.Content = tr.Content
 	msg.Signature = "invalid - mapped JSON message from CBOR"

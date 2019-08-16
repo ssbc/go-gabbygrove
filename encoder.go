@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"io"
+	"math"
 	"reflect"
 	"strings"
 	"time"
@@ -65,20 +66,23 @@ func (e *Encoder) Encode(sequence uint64, prev *BinaryRef, val interface{}) (*Tr
 	contentBuf := &bytes.Buffer{}
 	w := io.MultiWriter(contentHash, contentBuf)
 
+	// fill the fields of the new event
+	var evt Event
+
 	switch tv := val.(type) {
 	case []byte:
+		evt.Content.Type = ContentTypeArbitrary
 		io.Copy(w, bytes.NewReader(tv))
 	case string:
 		io.Copy(w, strings.NewReader(tv))
 	default:
+		evt.Content.Type = ContentTypeJSON
 		err := json.NewEncoder(w).Encode(val)
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "json content encoding failed")
 		}
 	}
 
-	// fill the fields of the new event
-	var evt Event
 	if sequence > 1 {
 		if prev == nil {
 			return nil, nil, errors.Errorf("encode: previous can only be nil on the first message")
@@ -86,7 +90,7 @@ func (e *Encoder) Encode(sequence uint64, prev *BinaryRef, val interface{}) (*Tr
 		evt.Previous = prev
 	}
 	evt.Sequence = sequence
-	evt.Timestamp = uint64(now().Unix())
+	evt.Timestamp = now().Unix()
 
 	var err error
 	evt.Author, err = fromRef(e.kp.Id)
@@ -101,11 +105,12 @@ func (e *Encoder) Encode(sequence uint64, prev *BinaryRef, val interface{}) (*Tr
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "failed to construct content reference")
 	}
-	evt.Content.Type = ContentTypeJSON // only supported one right now, will switch to cbor ones cipherlinks specifics have been defined
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "invalid content ref")
+
+	n := contentBuf.Len()
+	if n > math.MaxUint16 {
+		return nil, nil, errors.Errorf("gabbygrove: content size too large (got %d bytes)", n)
 	}
-	evt.Content.Size = uint64(contentBuf.Len())
+	evt.Content.Size = uint16(n)
 	contentBytes := contentBuf.Bytes()
 
 	evtBytes, err := evt.MarshalCBOR()
