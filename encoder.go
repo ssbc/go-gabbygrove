@@ -46,7 +46,12 @@ func NewEncoder(author *ssb.KeyPair) *Encoder {
 type Encoder struct {
 	kp *ssb.KeyPair
 
-	hmacSecret *[32]byte
+	hmacSecret   *[32]byte
+	setTimestamp bool
+}
+
+func (e *Encoder) WithNowTimestamps(yes bool) {
+	e.setTimestamp = yes
 }
 
 func (e *Encoder) WithHMAC(in []byte) error {
@@ -90,7 +95,9 @@ func (e *Encoder) Encode(sequence uint64, prev *BinaryRef, val interface{}) (*Tr
 		evt.Previous = prev
 	}
 	evt.Sequence = sequence
-	evt.Timestamp = now().Unix()
+	if e.setTimestamp {
+		evt.Timestamp = now().Unix()
+	}
 
 	var err error
 	evt.Author, err = fromRef(e.kp.Id)
