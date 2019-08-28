@@ -7,7 +7,6 @@ import (
 	"io"
 	"math"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -78,8 +77,6 @@ func (e *Encoder) Encode(sequence uint64, prev *BinaryRef, val interface{}) (*Tr
 	case []byte:
 		evt.Content.Type = ContentTypeArbitrary
 		io.Copy(w, bytes.NewReader(tv))
-	case string:
-		io.Copy(w, strings.NewReader(tv))
 	default:
 		evt.Content.Type = ContentTypeJSON
 		err := json.NewEncoder(w).Encode(val)
