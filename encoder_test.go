@@ -14,11 +14,11 @@ import (
 	"go.cryptoscope.co/ssb"
 )
 
-var i = time.Date(1969, 12, 31, 23, 59, 55, 0, time.UTC).Unix()
+var startTime = time.Date(1969, 12, 31, 23, 59, 55, 0, time.UTC).Unix()
 
 func fakeNow() time.Time {
-	t := time.Unix(i, 0)
-	i++
+	t := time.Unix(startTime, 0)
+	startTime++
 	return t
 }
 
@@ -30,12 +30,13 @@ func TestEncoder(t *testing.T) {
 	r.NoError(err)
 	kp.Id.Algo = ssb.RefAlgoFeedGabby
 
+	startTime = time.Date(1969, 12, 31, 23, 59, 55, 0, time.UTC).Unix()
 	now = fakeNow
 
 	t.Log("kp:", kp.Id.Ref())
 
 	var msgs = []interface{}{
-		[]byte("foo.box"),
+		[]byte("\"some json string!\""),
 		map[string]interface{}{
 			"type": "test",
 			"i":    1,
@@ -48,15 +49,16 @@ func TestEncoder(t *testing.T) {
 	}
 
 	wantHex := []string{
-		"83585385f6d9041a582101aed3dab65ce9e0d6c50d46fceffb552296ed21b6e0b537a6a0184575ce8f5cbd0124830007d9041a582103e806ecf2b7c37fb06dc198a9b905be64ee3fdb8237ef80d316acb7c85bbf5f02584034ec2580ccab434eb6b5510ad9d80261d592e93b6561497177b3167960fb7335384c161b342fe11682a25e79f9b65549c851fe757e55e4364166d0fdc520150647666f6f2e626f78",
-		"83587885d9041a582102187e31c8d336624415cb5003044e30683189b272cb9d8d05fff946b0bf2c6888d9041a582101aed3dab65ce9e0d6c50d46fceffb552296ed21b6e0b537a6a0184575ce8f5cbd0223830116d9041a58210395cca4fa7b24abc6049683e716292b00c49509be147aa024c06286bd9b7dbda85840d3267fe0905bc3f1da49a7a848779b7596b5b8cacf002a3a097a0c01ce0bc158ced0e32777d4f8836da6a199c767d791f5551c2914da4d46fa31cec67129e70e567b2269223a312c2274797065223a2274657374227d0a",
-		"83587985d9041a582102d8846f26344fb0fcdb6dc6a0923affaedd22091d2ee156efe4eea397ef5c590dd9041a582101aed3dab65ce9e0d6c50d46fceffb552296ed21b6e0b537a6a0184575ce8f5cbd032283011869d9041a58210327d0b22f26328f03ffce2a7c66b2ee27e337ca5d28cdc89ead668f1dd7f0218b584087c8bdddc615a4d12113bedfa8b7dbed05dad3b003464bbdcdfe315f28e5113b6de1a664ca89c9f0bf5ade3d4af9d3887d1bf2d0c570f7394ab6c2685eb8800258697b22636f6e74616374223a224072745061746c7a70344e624644556238372f745649706274496262677454656d6f42684664633650584c303d2e6767666565642d7631222c2273706563746174696e67223a747275652c2274797065223a22636f6e74616374227d0a",
+		"83585385f6d9041a582101aed3dab65ce9e0d6c50d46fceffb552296ed21b6e0b537a6a0184575ce8f5cbd012483d9041a5821034793ac902a118e3403229a3229fcf0e002b5d9c919e66aa70ab69724f11e189213005840e2929c3231a39b72a5a8024d773c26a72451be6f370a675e156cb0607f1155aeb94e952939aedb9304e5b06881b75e53bce907d20f6806203b33412d9cd73f035322736f6d65206a736f6e20737472696e672122",
+		"83587885d9041a582102fd23be5e971553b094656fae4004e1e48615058c6e11a2e2a0baea0fb4770f09d9041a582101aed3dab65ce9e0d6c50d46fceffb552296ed21b6e0b537a6a0184575ce8f5cbd022383d9041a58210395cca4fa7b24abc6049683e716292b00c49509be147aa024c06286bd9b7dbda816015840a9314593ea6ca8205bc3d152395e06210c349a1a599a4712096be232f0531efb3ce856a462265d2ffb5ae9f8050c4f04a08f76ee3db3842f7a75c29a74cc000b567b2269223a312c2274797065223a2274657374227d0a",
+		"83587985d9041a58210245e67672a01d920e7513c447320cc9f01027531103eb7cbf8e30e6f1513f0edcd9041a582101aed3dab65ce9e0d6c50d46fceffb552296ed21b6e0b537a6a0184575ce8f5cbd032283d9041a58210327d0b22f26328f03ffce2a7c66b2ee27e337ca5d28cdc89ead668f1dd7f0218b186901584083ddf063762e0296bdbbc1c4d1bb051f9db2c930db79cf641c48d8c2eff39dbd35b8cfa187a035b482466048808f834d245011e74ff76252b1cce84abc41990f58697b22636f6e74616374223a224072745061746c7a70344e624644556238372f745649706274496262677454656d6f42684664633650584c303d2e6767666565642d7631222c2273706563746174696e67223a747275652c2274797065223a22636f6e74616374227d0a",
 	}
 
 	var prevRef *BinaryRef
 	for msgidx, msg := range msgs {
 
 		e := NewEncoder(kp)
+		e.WithNowTimestamps(true)
 		seq := uint64(msgidx + 1)
 		tr, msgRef, err := e.Encode(seq, prevRef, msg)
 		r.NoError(err, "msg[%02d]Encode failed", msgidx)
@@ -71,7 +73,6 @@ func TestEncoder(t *testing.T) {
 		a.Equal(len(want), len(got), "msg[%02d] wrong msg length", msgidx)
 		if !a.Equal(want, got, "msg[%02d] compare failed", msgidx) {
 			t.Log("got", hex.EncodeToString(got))
-			t.Log("want", wantHex[msgidx])
 		}
 
 		r.True(tr.Verify(nil), "msg[%02d] did not verify", msgidx)
@@ -113,7 +114,9 @@ func TestEncoder(t *testing.T) {
 
 func TestEvtDecode(t *testing.T) {
 	r := require.New(t)
-	var input = "85d9041a5821026265656662656566626565666265656662656566626565666265656662656566d9041a582101aed3dab65ce9e0d6c50d46fceffb552296ed21b6e0b537a6a0184575ce8f5cbd031a5d3f888283011869d9041a58210327d0b22f26328f03ffce2a7c66b2ee27e337ca5d28cdc89ead668f1dd7f0218b"
+	a := assert.New(t)
+
+	var input = "85d9041a5821024226e0304155aeea683a98882ca5683579e1cdd5505597fb76498bf4c4973b98d9041a582101aed3dab65ce9e0d6c50d46fceffb552296ed21b6e0b537a6a0184575ce8f5cbd032283d9041a58210327d0b22f26328f03ffce2a7c66b2ee27e337ca5d28cdc89ead668f1dd7f0218b186901"
 
 	data, err := hex.DecodeString(input)
 	r.NoError(err)
@@ -122,13 +125,13 @@ func TestEvtDecode(t *testing.T) {
 	var evt Event
 	evtDec := codec.NewDecoder(bytes.NewReader(data), GetCBORHandle())
 	err = evtDec.Decode(&evt)
-	r.NoError(err)
-	r.NotNil(evt.Author)
-	r.NotNil(evt.Previous)
-	r.EqualValues("%YmVlZmJlZWZiZWVmYmVlZmJlZWZiZWVmYmVlZmJlZWY=.ggmsg-v1", evt.Previous.Ref())
-	r.EqualValues("!J9CyLyYyjwP/zip8ZrLuJ+M3yl0ozcierWaPHdfwIYs=.gabby-v1-content", evt.Content.Hash.Ref())
-	r.Equal(uint64(3), evt.Sequence)
-	r.EqualValues(0x5d3f8882, evt.Timestamp)
+	r.NoError(err, "decode failed")
+	a.NotNil(evt.Author)
+	a.NotNil(evt.Previous)
+	a.EqualValues("%QibgMEFVrupoOpiILKVoNXnhzdVQVZf7dkmL9MSXO5g=.ggmsg-v1", evt.Previous.Ref())
+	a.EqualValues("!J9CyLyYyjwP/zip8ZrLuJ+M3yl0ozcierWaPHdfwIYs=.gabby-v1-content", evt.Content.Hash.Ref())
+	a.Equal(uint64(3), evt.Sequence)
+	a.EqualValues(-3, evt.Timestamp)
 }
 func TestEncodeLargestMsg(t *testing.T) {
 	r := require.New(t)
@@ -137,6 +140,7 @@ func TestEncodeLargestMsg(t *testing.T) {
 	r.NoError(err)
 	kp.Id.Algo = ssb.RefAlgoFeedGabby
 
+	startTime = time.Date(1969, 12, 31, 23, 59, 55, 0, time.UTC).Unix()
 	now = fakeNow
 
 	largeMsg := bytes.Repeat([]byte("X"), math.MaxUint16)
@@ -171,8 +175,6 @@ func TestEncodeTooLarge(t *testing.T) {
 	kp, err := ssb.NewKeyPair(bytes.NewReader(dead))
 	r.NoError(err)
 	kp.Id.Algo = ssb.RefAlgoFeedGabby
-
-	now = fakeNow
 
 	tooLargeMsg := bytes.Repeat([]byte("A"), math.MaxUint16+10)
 

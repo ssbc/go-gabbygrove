@@ -55,9 +55,9 @@ const (
 )
 
 type Content struct {
-	Type ContentType
-	Size uint16
 	Hash *BinaryRef
+	Size uint16
+	Type ContentType
 }
 
 // 1 byte to frame the array
