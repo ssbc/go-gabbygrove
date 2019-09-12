@@ -128,11 +128,13 @@ func (tr *Transfer) getEvent() (*Event, error) {
 func (tr *Transfer) Verify(hmacKey *[32]byte) bool {
 	evt, err := tr.getEvent()
 	if err != nil {
-		panic(err)
+		log.Println("gabbygrove/verify event decoding failed:", err)
+		return false
 	}
 	aref, err := evt.Author.GetRef(RefTypeFeed)
 	if err != nil {
-		panic(err)
+		log.Println("gabbygrove/verify getRef failed:", err)
+		return false
 	}
 
 	pubKey := aref.(*ssb.FeedRef).ID
@@ -151,7 +153,8 @@ var _ ssb.Message = (*Transfer)(nil)
 func (tr *Transfer) Seq() int64 {
 	evt, err := tr.getEvent()
 	if err != nil {
-		panic(err)
+		log.Println("gabbygrove/verify event decoding failed:", err)
+		return -1
 	}
 	return int64(evt.Sequence)
 }
