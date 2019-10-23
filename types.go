@@ -2,6 +2,7 @@ package gabbygrove
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"io"
 	"log"
@@ -224,8 +225,17 @@ func (tr *Transfer) ValueContent() *ssb.Value {
 	msg.Sequence = margaret.BaseSeq(evt.Sequence)
 	msg.Hash = "gabbygrove-v1"
 	msg.Timestamp = encodedTime.Millisecs(tr.Claimed())
-	msg.Content = tr.Content
 	msg.Signature = "invalid - mapped JSON message from CBOR"
+	switch evt.Content.Type {
+	case ContentTypeArbitrary:
+		v, err := json.Marshal(tr.Content)
+		if err != nil {
+			panic(err)
+		}
+		msg.Content = json.RawMessage(v)
+	case ContentTypeJSON:
+		msg.Content = json.RawMessage(tr.Content)
+	}
 	return &msg
 }
 
