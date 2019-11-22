@@ -1,0 +1,9 @@
+image: archlinux
+packages:
+  - go
+sources:
+  - https://git.sr.ht/~cryptix/go-gabbygrove
+tasks:
+  - test: |
+      cd go-gabbygrove
+      go test

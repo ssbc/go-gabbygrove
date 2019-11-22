@@ -1,4 +1,4 @@
-# Gabby Grove for Go [![GoDoc](https://godoc.org/go.mindeco.de/ssb-gabbygrove?status.svg)](https://godoc.org/go.mindeco.de/ssb-gabbygrove)
+# Gabby Grove for Go [![GoDoc](https://godoc.org/go.mindeco.de/ssb-gabbygrove?status.svg)](https://godoc.org/go.mindeco.de/ssb-gabbygrove) [![builds.sr.ht status](https://builds.sr.ht/~cryptix/go-wav.svg)](https://builds.sr.ht/~cryptix/go-wav?)
 
 This strives to be an easier implementation of https://spec.scuttlebutt.nz/feed/datamodel.html feeds.
 
