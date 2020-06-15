@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/ugorji/go/codec"
-	"go.cryptoscope.co/ssb"
+	ssb "go.mindeco.de/ssb-refs"
 )
 
 var startTime = time.Date(1969, 12, 31, 23, 59, 55, 0, time.UTC).Unix()

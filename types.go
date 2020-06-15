@@ -14,7 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/ugorji/go/codec"
 	"go.cryptoscope.co/margaret"
-	"go.cryptoscope.co/ssb"
+	ssb "go.mindeco.de/ssb-refs"
 	"golang.org/x/crypto/ed25519"
 	"golang.org/x/crypto/nacl/auth"
 )

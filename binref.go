@@ -5,7 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/ugorji/go/codec"
-	"go.cryptoscope.co/ssb"
+	ssb "go.mindeco.de/ssb-refs"
 )
 
 type RefType uint
