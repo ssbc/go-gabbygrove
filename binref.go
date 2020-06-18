@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/ugorji/go/codec"
 	ssb "go.mindeco.de/ssb-refs"
+	"golang.org/x/crypto/ed25519"
 )
 
 type RefType uint
@@ -180,6 +181,18 @@ func fromRef(r ssb.Ref) (*BinaryRef, error) {
 		return nil, fmt.Errorf("fromRef: invalid ref type: %T", r)
 	}
 	return &br, nil
+}
+
+func refFromPubKey(pk ed25519.PublicKey) (*BinaryRef, error) {
+	if len(pk) != ed25519.PublicKeySize {
+		return nil, fmt.Errorf("invalid public key")
+	}
+	return &BinaryRef{
+		fr: &ssb.FeedRef{
+			Algo: ssb.RefAlgoFeedGabby,
+			ID:   pk,
+		},
+	}, nil
 }
 
 type BinRefExt struct{}

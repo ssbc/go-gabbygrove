@@ -36,14 +36,14 @@ func GetCBORHandle() (h *codec.CborHandle) {
 	return h
 }
 
-func NewEncoder(author *ssb.KeyPair) *Encoder {
+func NewEncoder(author ed25519.PrivateKey) *Encoder {
 	pe := &Encoder{}
-	pe.kp = author
+	pe.privKey = author
 	return pe
 }
 
 type Encoder struct {
-	kp *ssb.KeyPair
+	privKey ed25519.PrivateKey
 
 	hmacSecret   *[32]byte
 	setTimestamp bool
@@ -97,7 +97,7 @@ func (e *Encoder) Encode(sequence uint64, prev *BinaryRef, val interface{}) (*Tr
 	}
 
 	var err error
-	evt.Author, err = fromRef(e.kp.Id)
+	evt.Author, err = refFromPubKey(e.privKey.Public().(ed25519.PublicKey))
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "invalid author ref")
 	}
@@ -130,7 +130,7 @@ func (e *Encoder) Encode(sequence uint64, prev *BinaryRef, val interface{}) (*Tr
 
 	var tr Transfer
 	tr.Event = evtBytes
-	tr.Signature = ed25519.Sign(e.kp.Pair.Secret[:], toSign)
+	tr.Signature = ed25519.Sign(e.privKey, toSign)
 	tr.Content = contentBytes
 	return &tr, tr.Key(), nil
 }

@@ -3,6 +3,7 @@ package gabbygrove
 import (
 	"bytes"
 	"encoding/hex"
+	"io"
 	"io/ioutil"
 	"math"
 	"testing"
@@ -12,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/ugorji/go/codec"
 	ssb "go.mindeco.de/ssb-refs"
+	"golang.org/x/crypto/ed25519"
 )
 
 var startTime = time.Date(1969, 12, 31, 23, 59, 55, 0, time.UTC).Unix()
@@ -22,18 +24,28 @@ func fakeNow() time.Time {
 	return t
 }
 
+func generatePrivateKey(t testing.TB, r io.Reader) (ed25519.PublicKey, ed25519.PrivateKey) {
+	pub, priv, err := ed25519.GenerateKey(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return pub, priv
+}
+
 func TestEncoder(t *testing.T) {
 	r := require.New(t)
 	a := assert.New(t)
 	dead := bytes.Repeat([]byte("dead"), 8)
-	kp, err := ssb.NewKeyPair(bytes.NewReader(dead))
+	pubKey, privKey := generatePrivateKey(t, bytes.NewReader(dead))
+
+	authorRef, err := refFromPubKey(pubKey)
 	r.NoError(err)
-	kp.Id.Algo = ssb.RefAlgoFeedGabby
 
 	startTime = time.Date(1969, 12, 31, 23, 59, 55, 0, time.UTC).Unix()
 	now = fakeNow
 
-	t.Log("kp:", kp.Id.Ref())
+	t.Log("kp:", authorRef.Ref())
 
 	var msgs = []interface{}{
 		append([]byte{0xff}, []byte("s01mBytz")...),
@@ -43,7 +55,7 @@ func TestEncoder(t *testing.T) {
 		},
 		map[string]interface{}{
 			"type":       "contact",
-			"contact":    kp.Id.Ref(),
+			"contact":    authorRef.Ref(),
 			"spectating": true,
 		},
 	}
@@ -57,7 +69,7 @@ func TestEncoder(t *testing.T) {
 	var prevRef *BinaryRef
 	for msgidx, msg := range msgs {
 
-		e := NewEncoder(kp)
+		e := NewEncoder(privKey)
 		e.WithNowTimestamps(true)
 		seq := uint64(msgidx + 1)
 		tr, msgRef, err := e.Encode(seq, prevRef, msg)
@@ -136,16 +148,14 @@ func TestEvtDecode(t *testing.T) {
 func TestEncodeLargestMsg(t *testing.T) {
 	r := require.New(t)
 	dead := bytes.Repeat([]byte("dead"), 8)
-	kp, err := ssb.NewKeyPair(bytes.NewReader(dead))
-	r.NoError(err)
-	kp.Id.Algo = ssb.RefAlgoFeedGabby
+	_, privKey := generatePrivateKey(t, bytes.NewReader(dead))
 
 	startTime = time.Date(1969, 12, 31, 23, 59, 55, 0, time.UTC).Unix()
 	now = fakeNow
 
 	largeMsg := bytes.Repeat([]byte("X"), math.MaxUint16)
 
-	e := NewEncoder(kp)
+	e := NewEncoder(privKey)
 	seq := uint64(9999999)
 	fakeRef, err := fromRef(&ssb.MessageRef{
 		Algo: ssb.RefAlgoMessageGabby,
@@ -172,13 +182,11 @@ func TestEncodeTooLarge(t *testing.T) {
 	r := require.New(t)
 	a := assert.New(t)
 	dead := bytes.Repeat([]byte("dead"), 8)
-	kp, err := ssb.NewKeyPair(bytes.NewReader(dead))
-	r.NoError(err)
-	kp.Id.Algo = ssb.RefAlgoFeedGabby
+	_, privKey := generatePrivateKey(t, bytes.NewReader(dead))
 
 	tooLargeMsg := bytes.Repeat([]byte("A"), math.MaxUint16+10)
 
-	e := NewEncoder(kp)
+	e := NewEncoder(privKey)
 	seq := uint64(1)
 	tr, msgRef, err := e.Encode(seq, nil, tooLargeMsg)
 	r.Error(err, "Encode worked!!")
@@ -210,11 +218,12 @@ func benchmarkEncoder(i int, b *testing.B) {
 	r := require.New(b)
 
 	dead := bytes.Repeat([]byte("dead"), 8)
-	kp, err := ssb.NewKeyPair(bytes.NewReader(dead))
-	r.NoError(err)
-	kp.Id.Algo = ssb.RefAlgoFeedGabby
 
-	e := NewEncoder(kp)
+	pubKey, privKey := generatePrivateKey(b, bytes.NewReader(dead))
+	authorRef, err := refFromPubKey(pubKey)
+	r.NoError(err)
+
+	e := NewEncoder(privKey)
 
 	fakeRef, _ := fromRef(&ssb.MessageRef{
 		Hash: []byte("herberd"),
@@ -223,7 +232,7 @@ func benchmarkEncoder(i int, b *testing.B) {
 
 	msg := map[string]interface{}{
 		"type":       "contact",
-		"contact":    kp.Id.Ref(),
+		"contact":    authorRef.Ref(),
 		"spectating": true,
 	}
 	b.ResetTimer()
@@ -247,11 +256,10 @@ func benchmarkVerify(i int, b *testing.B) {
 	r := require.New(b)
 
 	dead := bytes.Repeat([]byte("dead"), 8)
-	kp, err := ssb.NewKeyPair(bytes.NewReader(dead))
-	r.NoError(err)
-	kp.Id.Algo = ssb.RefAlgoFeedGabby
 
-	e := NewEncoder(kp)
+	_, privKey := generatePrivateKey(b, bytes.NewReader(dead))
+
+	e := NewEncoder(privKey)
 
 	fakeRef, _ := fromRef(&ssb.MessageRef{
 		Hash: bytes.Repeat([]byte("herb"), 8),
