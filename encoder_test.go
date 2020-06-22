@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/ugorji/go/codec"
+	refs "go.mindeco.de/ssb-refs"
 	ssb "go.mindeco.de/ssb-refs"
 	"golang.org/x/crypto/ed25519"
 )
@@ -157,7 +158,7 @@ func TestEncodeLargestMsg(t *testing.T) {
 
 	e := NewEncoder(privKey)
 	seq := uint64(9999999)
-	fakeRef, err := fromRef(&ssb.MessageRef{
+	fakeRef, err := fromRef(&refs.MessageRef{
 		Algo: ssb.RefAlgoMessageGabby,
 		Hash: bytes.Repeat([]byte("b4ut"), 8),
 	})
@@ -225,7 +226,7 @@ func benchmarkEncoder(i int, b *testing.B) {
 
 	e := NewEncoder(privKey)
 
-	fakeRef, _ := fromRef(&ssb.MessageRef{
+	fakeRef, _ := fromRef(&refs.MessageRef{
 		Hash: []byte("herberd"),
 		Algo: ssb.RefAlgoMessageGabby,
 	})
@@ -261,7 +262,7 @@ func benchmarkVerify(i int, b *testing.B) {
 
 	e := NewEncoder(privKey)
 
-	fakeRef, _ := fromRef(&ssb.MessageRef{
+	fakeRef, _ := fromRef(&refs.MessageRef{
 		Hash: bytes.Repeat([]byte("herb"), 8),
 		Algo: ssb.RefAlgoMessageGabby,
 	})

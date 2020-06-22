@@ -11,6 +11,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/ugorji/go/codec"
+	refs "go.mindeco.de/ssb-refs"
 	ssb "go.mindeco.de/ssb-refs"
 	"golang.org/x/crypto/ed25519"
 	"golang.org/x/crypto/nacl/auth"
@@ -65,7 +66,7 @@ func (e *Encoder) WithHMAC(in []byte) error {
 
 var now = time.Now
 
-func (e *Encoder) Encode(sequence uint64, prev *BinaryRef, val interface{}) (*Transfer, *ssb.MessageRef, error) {
+func (e *Encoder) Encode(sequence uint64, prev *BinaryRef, val interface{}) (*Transfer, *refs.MessageRef, error) {
 	contentHash := sha256.New()
 	contentBuf := &bytes.Buffer{}
 	w := io.MultiWriter(contentHash, contentBuf)
@@ -135,12 +136,12 @@ func (e *Encoder) Encode(sequence uint64, prev *BinaryRef, val interface{}) (*Tr
 	return &tr, tr.Key(), nil
 }
 
-func (tr Transfer) Key() *ssb.MessageRef {
+func (tr Transfer) Key() *refs.MessageRef {
 	signedEvtHash := sha256.New()
 	io.Copy(signedEvtHash, bytes.NewReader(tr.Event))
 	io.Copy(signedEvtHash, bytes.NewReader(tr.Signature))
 
-	return &ssb.MessageRef{
+	return &refs.MessageRef{
 		Hash: signedEvtHash.Sum(nil),
 		Algo: ssb.RefAlgoMessageGabby,
 	}

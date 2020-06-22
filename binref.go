@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/ugorji/go/codec"
+	refs "go.mindeco.de/ssb-refs"
 	ssb "go.mindeco.de/ssb-refs"
 	"golang.org/x/crypto/ed25519"
 )
@@ -20,8 +21,8 @@ const (
 
 // BinaryRef defines a binary representation for feed, message, and content references
 type BinaryRef struct {
-	fr *ssb.FeedRef
-	mr *ssb.MessageRef
+	fr *refs.FeedRef
+	mr *refs.MessageRef
 	cr *ssb.ContentRef // payload/content ref
 }
 
@@ -90,12 +91,12 @@ func (ref *BinaryRef) UnmarshalBinary(data []byte) error {
 	}
 	switch data[0] {
 	case 0x01:
-		ref.fr = &ssb.FeedRef{
+		ref.fr = &refs.FeedRef{
 			ID:   data[1:],
 			Algo: ssb.RefAlgoFeedGabby,
 		}
 	case 0x02:
-		ref.mr = &ssb.MessageRef{
+		ref.mr = &refs.MessageRef{
 			Hash: data[1:],
 			Algo: ssb.RefAlgoMessageGabby,
 		}
@@ -171,9 +172,9 @@ func NewBinaryRef(r ssb.Ref) (*BinaryRef, error) {
 func fromRef(r ssb.Ref) (*BinaryRef, error) {
 	var br BinaryRef
 	switch tr := r.(type) {
-	case *ssb.FeedRef:
+	case *refs.FeedRef:
 		br.fr = tr
-	case *ssb.MessageRef:
+	case *refs.MessageRef:
 		br.mr = tr
 	case *ssb.ContentRef:
 		br.cr = tr
@@ -188,7 +189,7 @@ func refFromPubKey(pk ed25519.PublicKey) (*BinaryRef, error) {
 		return nil, fmt.Errorf("invalid public key")
 	}
 	return &BinaryRef{
-		fr: &ssb.FeedRef{
+		fr: &refs.FeedRef{
 			Algo: ssb.RefAlgoFeedGabby,
 			ID:   pk,
 		},

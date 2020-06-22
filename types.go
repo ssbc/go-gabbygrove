@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/ugorji/go/codec"
 	"go.cryptoscope.co/margaret"
+	refs "go.mindeco.de/ssb-refs"
 	ssb "go.mindeco.de/ssb-refs"
 	"golang.org/x/crypto/ed25519"
 	"golang.org/x/crypto/nacl/auth"
@@ -138,7 +139,7 @@ func (tr *Transfer) Verify(hmacKey *[32]byte) bool {
 		return false
 	}
 
-	pubKey := aref.(*ssb.FeedRef).ID
+	pubKey := aref.(*refs.FeedRef).ID
 
 	toVerify := tr.Event
 	if hmacKey != nil {
@@ -149,7 +150,7 @@ func (tr *Transfer) Verify(hmacKey *[32]byte) bool {
 	return ed25519.Verify(pubKey, toVerify, tr.Signature)
 }
 
-var _ ssb.Message = (*Transfer)(nil)
+var _ refs.Message = (*Transfer)(nil)
 
 func (tr *Transfer) Seq() int64 {
 	evt, err := tr.getEvent()
@@ -160,7 +161,7 @@ func (tr *Transfer) Seq() int64 {
 	return int64(evt.Sequence)
 }
 
-func (tr *Transfer) Author() *ssb.FeedRef {
+func (tr *Transfer) Author() *refs.FeedRef {
 	evt, err := tr.getEvent()
 	if err != nil {
 		panic(err)
@@ -169,10 +170,10 @@ func (tr *Transfer) Author() *ssb.FeedRef {
 	if err != nil {
 		panic(err)
 	}
-	return aref.(*ssb.FeedRef)
+	return aref.(*refs.FeedRef)
 }
 
-func (tr *Transfer) Previous() *ssb.MessageRef {
+func (tr *Transfer) Previous() *refs.MessageRef {
 	evt, err := tr.getEvent()
 	if err != nil {
 		panic(err)
@@ -184,7 +185,7 @@ func (tr *Transfer) Previous() *ssb.MessageRef {
 	if err != nil {
 		panic(err)
 	}
-	return mref.(*ssb.MessageRef)
+	return mref.(*refs.MessageRef)
 }
 
 func (tr *Transfer) Received() time.Time {
@@ -218,13 +219,13 @@ func (tr *Transfer) ValueContent() *ssb.Value {
 		if err != nil {
 			panic(err)
 		}
-		msg.Previous = ref.(*ssb.MessageRef)
+		msg.Previous = ref.(*refs.MessageRef)
 	}
 	aref, err := evt.Author.GetRef(RefTypeFeed)
 	if err != nil {
 		panic(err)
 	}
-	msg.Author = *aref.(*ssb.FeedRef)
+	msg.Author = *aref.(*refs.FeedRef)
 	msg.Sequence = margaret.BaseSeq(evt.Sequence)
 	msg.Hash = "gabbygrove-v1"
 	msg.Signature = base64.StdEncoding.EncodeToString(tr.Signature) + ".cbor.sig.ed25519"
