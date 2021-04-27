@@ -161,7 +161,7 @@ func (tr *Transfer) Seq() int64 {
 	return int64(evt.Sequence)
 }
 
-func (tr *Transfer) Author() *refs.FeedRef {
+func (tr *Transfer) Author() refs.FeedRef {
 	evt, err := tr.getEvent()
 	if err != nil {
 		panic(err)

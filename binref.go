@@ -70,7 +70,7 @@ func (ref BinaryRef) MarshalBinary() ([]byte, error) {
 	}
 	switch t {
 	case RefTypeFeed:
-		return append([]byte{0x01}, ref.fr.ID...), nil
+		return append([]byte{0x01}, ref.fr.PubKey()...), nil
 	case RefTypeMessage:
 		return append([]byte{0x02}, ref.mr.Hash...), nil
 	case RefTypeContent:

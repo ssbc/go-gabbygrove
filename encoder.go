@@ -136,13 +136,10 @@ func (e *Encoder) Encode(sequence uint64, prev *BinaryRef, val interface{}) (*Tr
 	return &tr, tr.Key(), nil
 }
 
-func (tr Transfer) Key() *refs.MessageRef {
+func (tr Transfer) Key() refs.MessageRef {
 	signedEvtHash := sha256.New()
 	io.Copy(signedEvtHash, bytes.NewReader(tr.Event))
 	io.Copy(signedEvtHash, bytes.NewReader(tr.Signature))
 
-	return &refs.MessageRef{
-		Hash: signedEvtHash.Sum(nil),
-		Algo: ssb.RefAlgoMessageGabby,
-	}
+	return refs.NewMessageRefFromBytes(signedEvtHash.Sum(nil), ssb.RefAlgoMessageGabby)
 }
