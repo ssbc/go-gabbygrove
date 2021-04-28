@@ -67,7 +67,7 @@ func TestEncoder(t *testing.T) {
 		"83587985d9041a5821021aaef1f6980c8d9f3f1ebc84dce391212c2f01cd8861943127cd58ec04bc1bb7d9041a582101aed3dab65ce9e0d6c50d46fceffb552296ed21b6e0b537a6a0184575ce8f5cbd032283d9041a58210327d0b22f26328f03ffce2a7c66b2ee27e337ca5d28cdc89ead668f1dd7f0218b1869015840e7f3e013c4dda7e6bec6930b9cfc5835c5a0a898bf77c407a1e0f3fb2245c6ffb4733dbb21b440bd833b834e9b04db6be8af7d6e401e412a0d2930698a4ffc0058697b22636f6e74616374223a224072745061746c7a70344e624644556238372f745649706274496262677454656d6f42684664633650584c303d2e6767666565642d7631222c2273706563746174696e67223a747275652c2274797065223a22636f6e74616374227d0a",
 	}
 
-	var prevRef *BinaryRef
+	var prevRef BinaryRef
 	for msgidx, msg := range msgs {
 
 		e := NewEncoder(privKey)
@@ -88,7 +88,7 @@ func TestEncoder(t *testing.T) {
 			t.Log("got", hex.EncodeToString(got))
 		}
 
-		r.True(tr.Verify(nil), "msg[%02d] did not verify", msgidx)
+		a.True(tr.Verify(nil), "msg[%02d] did not verify", msgidx)
 
 		prevRef, err = fromRef(tr.Key())
 		r.NoError(err)
@@ -158,14 +158,17 @@ func TestEncodeLargestMsg(t *testing.T) {
 
 	e := NewEncoder(privKey)
 	seq := uint64(9999999)
-	fakeRef, err := fromRef(&refs.MessageRef{
-		Algo: ssb.RefAlgoMessageGabby,
-		Hash: bytes.Repeat([]byte("b4ut"), 8),
-	})
+
+	testMr, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte("b4ut"), 8), ssb.RefAlgoMessageGabby)
 	r.NoError(err)
+
+	fakeRef, err := fromRef(testMr)
+	r.NoError(err)
+
 	tr, _, err := e.Encode(seq, fakeRef, largeMsg)
 	r.NoError(err, "Encode worked!!")
 	r.NotNil(tr)
+
 	trcbor, err := tr.MarshalCBOR()
 	r.NoError(err)
 
@@ -189,14 +192,14 @@ func TestEncodeTooLarge(t *testing.T) {
 
 	e := NewEncoder(privKey)
 	seq := uint64(1)
-	tr, msgRef, err := e.Encode(seq, nil, tooLargeMsg)
+	tr, msgRef, err := e.Encode(seq, BinaryRef{}, tooLargeMsg)
 	r.Error(err, "Encode worked!!")
-	if !a.Nil(tr) {
+	if !a.Zero(tr) {
 		trcbor, err := tr.MarshalCBOR()
 		r.NoError(err)
 		ioutil.WriteFile(t.Name(), trcbor, 0700)
 	}
-	r.Nil(msgRef)
+	r.Zero(msgRef)
 }
 
 func TestDecodeContentTooLarge(t *testing.T) {
@@ -226,10 +229,10 @@ func benchmarkEncoder(i int, b *testing.B) {
 
 	e := NewEncoder(privKey)
 
-	fakeRef, _ := fromRef(&refs.MessageRef{
-		Hash: []byte("herberd"),
-		Algo: ssb.RefAlgoMessageGabby,
-	})
+	mr, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte("prev"), 8), ssb.RefAlgoMessageGabby)
+	r.NoError(err)
+	fakeRef, err := fromRef(mr)
+	r.NoError(err)
 
 	msg := map[string]interface{}{
 		"type":       "contact",
@@ -262,10 +265,10 @@ func benchmarkVerify(i int, b *testing.B) {
 
 	e := NewEncoder(privKey)
 
-	fakeRef, _ := fromRef(&refs.MessageRef{
-		Hash: bytes.Repeat([]byte("herb"), 8),
-		Algo: ssb.RefAlgoMessageGabby,
-	})
+	mr, err := refs.NewMessageRefFromBytes(bytes.Repeat([]byte("prev"), 8), ssb.RefAlgoMessageGabby)
+	r.NoError(err)
+	fakeRef, err := fromRef(mr)
+	r.NoError(err)
 
 	msg := true
 	var trs []Transfer
@@ -275,7 +278,7 @@ func benchmarkVerify(i int, b *testing.B) {
 		r.NotNil(tr)
 		r.NotNil(msgRef)
 		r.True(tr.Verify(nil))
-		trs = append(trs, *tr)
+		trs = append(trs, tr)
 	}
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {

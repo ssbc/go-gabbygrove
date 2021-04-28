@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"math"
@@ -57,7 +58,7 @@ const (
 )
 
 type Content struct {
-	Hash *BinaryRef
+	Hash BinaryRef
 	Size uint16
 	Type ContentType
 }
@@ -139,7 +140,7 @@ func (tr *Transfer) Verify(hmacKey *[32]byte) bool {
 		return false
 	}
 
-	pubKey := aref.(*refs.FeedRef).ID
+	pubKey := aref.(*refs.FeedRef).PubKey()
 
 	toVerify := tr.Event
 	if hmacKey != nil {
@@ -170,7 +171,7 @@ func (tr *Transfer) Author() refs.FeedRef {
 	if err != nil {
 		panic(err)
 	}
-	return aref.(*refs.FeedRef)
+	return aref.(refs.FeedRef)
 }
 
 func (tr *Transfer) Previous() *refs.MessageRef {
@@ -250,4 +251,56 @@ func (tr *Transfer) ValueContentJSON() json.RawMessage {
 	}
 
 	return jsonB
+}
+
+var (
+	RefAlgoContentGabby refs.RefAlgo = "gabby-v1-content"
+)
+
+var _ refs.Ref = ContentRef{}
+
+// ContentRef defines the hashed content of a message
+type ContentRef struct {
+	hash [32]byte
+	algo refs.RefAlgo
+}
+
+func (ref ContentRef) Ref() string {
+	return fmt.Sprintf("!%s.%s", base64.StdEncoding.EncodeToString(ref.hash[:]), ref.algo)
+}
+
+func (ref ContentRef) ShortRef() string {
+	return fmt.Sprintf("<!%s.%s>", base64.StdEncoding.EncodeToString(ref.hash[:3]), ref.algo)
+}
+
+func (ref ContentRef) Algo() refs.RefAlgo {
+	return RefAlgoContentGabby
+}
+
+func (ref ContentRef) MarshalBinary() ([]byte, error) {
+	switch ref.algo {
+	case RefAlgoContentGabby:
+		return append([]byte{0x02}, ref.hash[:]...), nil
+	default:
+		return nil, fmt.Errorf("contentRef/Marshal: invalid binref type: %s", ref.algo)
+	}
+}
+
+func (ref *ContentRef) UnmarshalBinary(data []byte) error {
+	if n := len(data); n != 33 {
+		return errors.Errorf("contentRef: invalid len:%d", n)
+	}
+	var newRef ContentRef
+	switch data[0] {
+	case 0x02:
+		newRef.algo = RefAlgoContentGabby
+	default:
+		return fmt.Errorf("unmarshal: invalid contentRef type: %x", data[0])
+	}
+	n := copy(newRef.hash[:], data[1:])
+	if n != 32 {
+		return fmt.Errorf("unmarshal: invalid contentRef size: %d", n)
+	}
+	*ref = newRef
+	return nil
 }

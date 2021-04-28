@@ -13,3 +13,5 @@ require (
 )
 
 go 1.13
+
+replace go.mindeco.de/ssb-refs => /home/cryptix/go-repos/ssb-refs

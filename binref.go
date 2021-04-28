@@ -5,9 +5,9 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/ugorji/go/codec"
-	refs "go.mindeco.de/ssb-refs"
-	ssb "go.mindeco.de/ssb-refs"
 	"golang.org/x/crypto/ed25519"
+
+	refs "go.mindeco.de/ssb-refs"
 )
 
 type RefType uint
@@ -23,7 +23,7 @@ const (
 type BinaryRef struct {
 	fr *refs.FeedRef
 	mr *refs.MessageRef
-	cr *ssb.ContentRef // payload/content ref
+	cr *ContentRef // payload/content ref
 }
 
 // currently all references are 32bytes long
@@ -72,10 +72,12 @@ func (ref BinaryRef) MarshalBinary() ([]byte, error) {
 	case RefTypeFeed:
 		return append([]byte{0x01}, ref.fr.PubKey()...), nil
 	case RefTypeMessage:
-		return append([]byte{0x02}, ref.mr.Hash...), nil
+		hd := make([]byte, 32)
+		err := ref.mr.CopyHashTo(hd)
+		return append([]byte{0x02}, hd...), err
 	case RefTypeContent:
-		if ref.cr.Algo != ssb.RefAlgoContentGabby {
-			return nil, errors.Errorf("invalid binary content ref for feed: %s", ref.cr.Algo)
+		if ref.cr.algo != RefAlgoContentGabby {
+			return nil, errors.Errorf("invalid binary content ref for feed: %s", ref.cr.algo)
 		}
 		crBytes, err := ref.cr.MarshalBinary()
 		return append([]byte{0x03}, crBytes[1:]...), err
@@ -91,22 +93,24 @@ func (ref *BinaryRef) UnmarshalBinary(data []byte) error {
 	}
 	switch data[0] {
 	case 0x01:
-		ref.fr = &refs.FeedRef{
-			ID:   data[1:],
-			Algo: ssb.RefAlgoFeedGabby,
+		fr, err := refs.NewFeedRefFromBytes(data[1:], refs.RefAlgoFeedGabby)
+		if err != nil {
+			return err
 		}
+		ref.fr = &fr
 	case 0x02:
-		ref.mr = &refs.MessageRef{
-			Hash: data[1:],
-			Algo: ssb.RefAlgoMessageGabby,
+		mr, err := refs.NewMessageRefFromBytes(data[1:], refs.RefAlgoMessageGabby)
+		if err != nil {
+			return err
 		}
+		ref.mr = &mr
 	case 0x03:
-		var newCR ssb.ContentRef
+		var newCR ContentRef
 		if err := newCR.UnmarshalBinary(append([]byte{0x02}, data[1:]...)); err != nil {
 			return err
 		}
-		if newCR.Algo != ssb.RefAlgoContentGabby {
-			return errors.Errorf("unmarshal: invalid binary content ref for feed: %q", newCR.Algo)
+		if newCR.Algo() != RefAlgoContentGabby {
+			return errors.Errorf("unmarshal: invalid binary content ref for feed: %q", newCR.algo)
 		}
 		ref.cr = &newCR
 	default:
@@ -132,7 +136,7 @@ func (ref BinaryRef) MarshalJSON() ([]byte, error) {
 	return nil, fmt.Errorf("should not all be nil")
 }
 
-func bytestr(r ssb.Ref) []byte {
+func bytestr(r refs.Ref) []byte {
 	return []byte("\"" + r.Ref() + "\"")
 }
 
@@ -141,7 +145,7 @@ func (ref *BinaryRef) UnmarshalJSON(data []byte) error {
 	return errors.Errorf("TODO:json")
 }
 
-func (ref BinaryRef) GetRef(t RefType) (ssb.Ref, error) {
+func (ref BinaryRef) GetRef(t RefType) (refs.Ref, error) {
 	hasT, err := ref.valid()
 	if err != nil {
 		return nil, errors.Wrap(err, "GetRef: invalid reference")
@@ -151,7 +155,7 @@ func (ref BinaryRef) GetRef(t RefType) (ssb.Ref, error) {
 	}
 	// we could straight up return what is stored
 	// but then we still have to assert afterwards if it really is what we want
-	var ret ssb.Ref
+	var ret refs.Ref
 	switch t {
 	case RefTypeFeed:
 		ret = ref.fr
@@ -165,35 +169,33 @@ func (ref BinaryRef) GetRef(t RefType) (ssb.Ref, error) {
 	return ret, nil
 }
 
-func NewBinaryRef(r ssb.Ref) (*BinaryRef, error) {
+func NewBinaryRef(r refs.Ref) (BinaryRef, error) {
 	return fromRef(r)
 }
 
-func fromRef(r ssb.Ref) (*BinaryRef, error) {
+func fromRef(r refs.Ref) (BinaryRef, error) {
 	var br BinaryRef
 	switch tr := r.(type) {
-	case *refs.FeedRef:
-		br.fr = tr
-	case *refs.MessageRef:
-		br.mr = tr
-	case *ssb.ContentRef:
-		br.cr = tr
+	case refs.FeedRef:
+		br.fr = &tr
+	case refs.MessageRef:
+		br.mr = &tr
+	case ContentRef:
+		br.cr = &tr
 	default:
-		return nil, fmt.Errorf("fromRef: invalid ref type: %T", r)
+		return BinaryRef{}, fmt.Errorf("fromRef: invalid ref type: %T", r)
 	}
-	return &br, nil
+	return br, nil
 }
 
 func refFromPubKey(pk ed25519.PublicKey) (*BinaryRef, error) {
 	if len(pk) != ed25519.PublicKeySize {
 		return nil, fmt.Errorf("invalid public key")
 	}
+	fr, err := refs.NewFeedRefFromBytes(pk, refs.RefAlgoFeedGabby)
 	return &BinaryRef{
-		fr: &refs.FeedRef{
-			Algo: ssb.RefAlgoFeedGabby,
-			ID:   pk,
-		},
-	}, nil
+		fr: &fr,
+	}, err
 }
 
 type BinRefExt struct{}
