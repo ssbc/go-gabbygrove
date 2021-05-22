@@ -9,7 +9,6 @@ require (
 	go.cryptoscope.co/margaret v0.1.6
 	go.mindeco.de/ssb-refs v0.1.1-0.20210413150817-0208d30b0130
 	golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9
-	gopkg.in/yaml.v2 v2.2.2 // indirect
 )
 
 go 1.13
