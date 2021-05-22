@@ -10,11 +10,10 @@ import (
 	"math"
 	"time"
 
-	"github.com/cryptix/go/encodedTime"
+	"go.mindeco.de/encodedTime"
 
 	"github.com/pkg/errors"
 	"github.com/ugorji/go/codec"
-	"go.cryptoscope.co/margaret"
 	refs "go.mindeco.de/ssb-refs"
 	ssb "go.mindeco.de/ssb-refs"
 	"golang.org/x/crypto/ed25519"
@@ -227,7 +226,7 @@ func (tr *Transfer) ValueContent() *ssb.Value {
 		panic(err)
 	}
 	msg.Author = *aref.(*refs.FeedRef)
-	msg.Sequence = margaret.BaseSeq(evt.Sequence)
+	msg.Sequence = int64(evt.Sequence)
 	msg.Hash = "gabbygrove-v1"
 	msg.Signature = base64.StdEncoding.EncodeToString(tr.Signature) + ".cbor.sig.ed25519"
 	msg.Timestamp = encodedTime.Millisecs(tr.Claimed())
