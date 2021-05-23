@@ -66,7 +66,7 @@ func (e *Encoder) WithHMAC(in []byte) error {
 
 var now = time.Now
 
-func (e *Encoder) Encode(sequence uint64, prev BinaryRef, val interface{}) (Transfer, refs.MessageRef, error) {
+func (e *Encoder) Encode(sequence uint64, prev BinaryRef, val interface{}) (*Transfer, refs.MessageRef, error) {
 	contentHash := sha256.New()
 	contentBuf := &bytes.Buffer{}
 	w := io.MultiWriter(contentHash, contentBuf)
@@ -82,14 +82,11 @@ func (e *Encoder) Encode(sequence uint64, prev BinaryRef, val interface{}) (Tran
 		evt.Content.Type = ContentTypeJSON
 		err := json.NewEncoder(w).Encode(val)
 		if err != nil {
-			return Transfer{}, refs.MessageRef{}, errors.Wrap(err, "json content encoding failed")
+			return nil, refs.MessageRef{}, errors.Wrap(err, "json content encoding failed")
 		}
 	}
 
 	if sequence > 1 {
-		// if prev == nil {
-		// 	return Transfer{}, refs.MessageRef{}, errors.Errorf("encode: previous can only be nil on the first message")
-		// }
 		evt.Previous = &prev
 	}
 	evt.Sequence = sequence
@@ -100,7 +97,7 @@ func (e *Encoder) Encode(sequence uint64, prev BinaryRef, val interface{}) (Tran
 	var err error
 	evt.Author, err = refFromPubKey(e.privKey.Public().(ed25519.PublicKey))
 	if err != nil {
-		return Transfer{}, refs.MessageRef{}, errors.Wrap(err, "invalid author ref")
+		return nil, refs.MessageRef{}, errors.Wrap(err, "invalid author ref")
 	}
 
 	cr := ContentRef{
@@ -110,19 +107,19 @@ func (e *Encoder) Encode(sequence uint64, prev BinaryRef, val interface{}) (Tran
 
 	evt.Content.Hash, err = fromRef(cr)
 	if err != nil {
-		return Transfer{}, refs.MessageRef{}, errors.Wrap(err, "failed to construct content reference")
+		return nil, refs.MessageRef{}, errors.Wrap(err, "failed to construct content reference")
 	}
 
 	n := contentBuf.Len()
 	if n > math.MaxUint16 {
-		return Transfer{}, refs.MessageRef{}, errors.Errorf("gabbygrove: content size too large (got %d bytes)", n)
+		return nil, refs.MessageRef{}, errors.Errorf("gabbygrove: content size too large (got %d bytes)", n)
 	}
 	evt.Content.Size = uint16(n)
 	contentBytes := contentBuf.Bytes()
 
 	evtBytes, err := evt.MarshalCBOR()
 	if err != nil {
-		return Transfer{}, refs.MessageRef{}, errors.Wrap(err, "failed to encode event")
+		return nil, refs.MessageRef{}, errors.Wrap(err, "failed to encode event")
 	}
 
 	toSign := evtBytes
@@ -135,7 +132,7 @@ func (e *Encoder) Encode(sequence uint64, prev BinaryRef, val interface{}) (Tran
 	tr.Event = evtBytes
 	tr.Signature = ed25519.Sign(e.privKey, toSign)
 	tr.Content = contentBytes
-	return tr, tr.Key(), nil
+	return &tr, tr.Key(), nil
 }
 
 func (tr Transfer) Key() refs.MessageRef {

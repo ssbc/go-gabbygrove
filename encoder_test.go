@@ -271,7 +271,7 @@ func benchmarkVerify(i int, b *testing.B) {
 	r.NoError(err)
 
 	msg := true
-	var trs []Transfer
+	var trs []*Transfer
 	for k := i; k > 0; k-- {
 		tr, msgRef, err := e.Encode(uint64(k+1), fakeRef, msg)
 		r.NoError(err, "msg[%02d]Encode failed")

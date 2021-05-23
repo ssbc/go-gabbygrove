@@ -139,7 +139,7 @@ func (tr *Transfer) Verify(hmacKey *[32]byte) bool {
 		return false
 	}
 
-	pubKey := aref.(*refs.FeedRef).PubKey()
+	pubKey := aref.(refs.FeedRef).PubKey()
 
 	toVerify := tr.Event
 	if hmacKey != nil {
@@ -185,7 +185,8 @@ func (tr *Transfer) Previous() *refs.MessageRef {
 	if err != nil {
 		panic(err)
 	}
-	return mref.(*refs.MessageRef)
+	prevKey := mref.(refs.MessageRef)
+	return &prevKey
 }
 
 func (tr *Transfer) Received() time.Time {
@@ -219,13 +220,14 @@ func (tr *Transfer) ValueContent() *ssb.Value {
 		if err != nil {
 			panic(err)
 		}
-		msg.Previous = ref.(*refs.MessageRef)
+		prevMsg := ref.(refs.MessageRef)
+		msg.Previous = &prevMsg
 	}
 	aref, err := evt.Author.GetRef(RefTypeFeed)
 	if err != nil {
 		panic(err)
 	}
-	msg.Author = *aref.(*refs.FeedRef)
+	msg.Author = aref.(refs.FeedRef)
 	msg.Sequence = int64(evt.Sequence)
 	msg.Hash = "gabbygrove-v1"
 	msg.Signature = base64.StdEncoding.EncodeToString(tr.Signature) + ".cbor.sig.ed25519"
