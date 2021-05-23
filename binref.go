@@ -154,12 +154,12 @@ func fromRef(r refs.Ref) (BinaryRef, error) {
 	return br, nil
 }
 
-func refFromPubKey(pk ed25519.PublicKey) (*BinaryRef, error) {
+func refFromPubKey(pk ed25519.PublicKey) (BinaryRef, error) {
 	if len(pk) != ed25519.PublicKeySize {
-		return nil, fmt.Errorf("invalid public key")
+		return BinaryRef{}, fmt.Errorf("invalid public key")
 	}
 	fr, err := refs.NewFeedRefFromBytes(pk, refs.RefAlgoFeedGabby)
-	return &BinaryRef{
+	return BinaryRef{
 		r: fr,
 	}, err
 }

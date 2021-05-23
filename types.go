@@ -22,7 +22,7 @@ import (
 
 type Event struct {
 	Previous  *BinaryRef // %... Metadata hashsha
-	Author    *BinaryRef
+	Author    BinaryRef
 	Sequence  uint64
 	Timestamp int64
 	Content   Content
@@ -264,6 +264,16 @@ var _ refs.Ref = ContentRef{}
 type ContentRef struct {
 	hash [32]byte
 	algo refs.RefAlgo
+}
+
+func NewContentRefFromBytes(b []byte) (ContentRef, error) {
+	if n := len(b); n != 32 {
+		return ContentRef{}, errors.Errorf("contentRef: invalid len:%d", n)
+	}
+	var newRef ContentRef
+	newRef.algo = RefAlgoContentGabby
+	copy(newRef.hash[:], b)
+	return newRef, nil
 }
 
 func (ref ContentRef) Ref() string {
