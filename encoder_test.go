@@ -46,7 +46,7 @@ func TestEncoder(t *testing.T) {
 	startTime = time.Date(1969, 12, 31, 23, 59, 55, 0, time.UTC).Unix()
 	now = fakeNow
 
-	t.Log("kp:", authorRef.Ref())
+	t.Log("kp:", authorRef.URI())
 
 	var msgs = []interface{}{
 		append([]byte{0xff}, []byte("s01mBytz")...),
@@ -56,7 +56,7 @@ func TestEncoder(t *testing.T) {
 		},
 		map[string]interface{}{
 			"type":       "contact",
-			"contact":    authorRef.Ref(),
+			"contact":    authorRef,
 			"spectating": true,
 		},
 	}
@@ -64,7 +64,7 @@ func TestEncoder(t *testing.T) {
 	wantHex := []string{
 		"83585385f6d9041a582101aed3dab65ce9e0d6c50d46fceffb552296ed21b6e0b537a6a0184575ce8f5cbd012483d9041a582103a7ac59b52aff894ba89508b35f445ae90628f6d5f358157e4f45f39b5b3be96b090058408a3739fdb99d91e28552e9a2e22650c14a8cdbfe607cdca5767569db2b1e24caa3c31d65964143dc752e568b05c99e0e97c198885bfb8f3549b9c6ccbc99120549ff7330316d4279747a",
 		"83587885d9041a582102ccd8fd8392c1b9d1e3026dea42bec93e04b6f8eceb9af2d591489eb8b831c5e1d9041a582101aed3dab65ce9e0d6c50d46fceffb552296ed21b6e0b537a6a0184575ce8f5cbd022383d9041a58210395cca4fa7b24abc6049683e716292b00c49509be147aa024c06286bd9b7dbda8160158403a7f29f7395cc454c3904de2236eef2c0147496b77c556ade1a08bf57d3e70d2a43a4c723aeb5366d4f073ceeb8b2677e03ec62e49d1647c670d95cc77f9db07567b2269223a312c2274797065223a2274657374227d0a",
-		"83587985d9041a5821021aaef1f6980c8d9f3f1ebc84dce391212c2f01cd8861943127cd58ec04bc1bb7d9041a582101aed3dab65ce9e0d6c50d46fceffb552296ed21b6e0b537a6a0184575ce8f5cbd032283d9041a58210327d0b22f26328f03ffce2a7c66b2ee27e337ca5d28cdc89ead668f1dd7f0218b1869015840e7f3e013c4dda7e6bec6930b9cfc5835c5a0a898bf77c407a1e0f3fb2245c6ffb4733dbb21b440bd833b834e9b04db6be8af7d6e401e412a0d2930698a4ffc0058697b22636f6e74616374223a224072745061746c7a70344e624644556238372f745649706274496262677454656d6f42684664633650584c303d2e6767666565642d7631222c2273706563746174696e67223a747275652c2274797065223a22636f6e74616374227d0a",
+		"83587985d9041a5821021aaef1f6980c8d9f3f1ebc84dce391212c2f01cd8861943127cd58ec04bc1bb7d9041a582101aed3dab65ce9e0d6c50d46fceffb552296ed21b6e0b537a6a0184575ce8f5cbd032283d9041a5821037018dbc9080ae947c1eea299b7c08bd88d1964f6e35847aae835ff68c1ee55ec1875015840071b5eec6e3b0fcdcedbfd187f43fc621cded3bf81ad37f67374454b12e3f6c72b44926e1b487b4892bff1082d6514e022ce58253956cd4a38212b46a9777d0c58757b22636f6e74616374223a227373623a666565642f676162627967726f76652d76312f72745061746c7a70344e624644556238375f745649706274496262677454656d6f42684664633650584c303d222c2273706563746174696e67223a747275652c2274797065223a22636f6e74616374227d0a",
 	}
 
 	var prevRef BinaryRef
@@ -141,8 +141,8 @@ func TestEvtDecode(t *testing.T) {
 	r.NoError(err, "decode failed")
 	a.NotNil(evt.Author)
 	a.NotNil(evt.Previous)
-	a.EqualValues("%QibgMEFVrupoOpiILKVoNXnhzdVQVZf7dkmL9MSXO5g=.ggmsg-v1", evt.Previous.Ref())
-	a.EqualValues("!J9CyLyYyjwP/zip8ZrLuJ+M3yl0ozcierWaPHdfwIYs=.gabby-v1-content", evt.Content.Hash.Ref())
+	a.EqualValues("ssb:message/gabbygrove-v1/QibgMEFVrupoOpiILKVoNXnhzdVQVZf7dkmL9MSXO5g=", evt.Previous.URI())
+	a.EqualValues("ssb:content/gabbygrove-v1/J9CyLyYyjwP_zip8ZrLuJ-M3yl0ozcierWaPHdfwIYs=", evt.Content.Hash.URI())
 	a.Equal(uint64(3), evt.Sequence)
 	a.EqualValues(-3, evt.Timestamp)
 }
@@ -236,7 +236,7 @@ func benchmarkEncoder(i int, b *testing.B) {
 
 	msg := map[string]interface{}{
 		"type":       "contact",
-		"contact":    authorRef.Ref(),
+		"contact":    authorRef.URI(),
 		"spectating": true,
 	}
 	b.ResetTimer()
