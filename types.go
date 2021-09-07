@@ -285,6 +285,10 @@ func (ref ContentRef) ShortSigil() string {
 	return fmt.Sprintf("<!%s.%s>", base64.StdEncoding.EncodeToString(ref.hash[:3]), ref.algo)
 }
 
+func (ref ContentRef) ShortRef() string {
+	return ref.ShortSigil()
+}
+
 func (ref ContentRef) URI() string {
 	var ssbURI url.URL
 	ssbURI.Scheme = "ssb"
