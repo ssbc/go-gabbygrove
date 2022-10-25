@@ -2,17 +2,17 @@
 //
 // SPDX-License-Identifier: Unlicense
 
-module go.mindeco.de/ssb-gabbygrove
+go 1.13
+
+module github.com/ssbc/go-gabbygrove
 
 require (
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/stretchr/testify v1.6.1
+	github.com/ssbc/go-ssb-refs v0.5.2-0.20221019090322-8b558c2f31de
+	github.com/stretchr/testify v1.8.0
 	github.com/ugorji/go/codec v1.1.7
 	go.mindeco.de v1.12.0
-	go.mindeco.de/ssb-refs v0.5.1
-	golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9
+	golang.org/x/crypto v0.0.0-20221012134737-56aed061732a
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 )
-
-go 1.13

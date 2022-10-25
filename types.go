@@ -18,9 +18,9 @@ import (
 	"go.mindeco.de/encodedTime"
 
 	"github.com/pkg/errors"
+	refs "github.com/ssbc/go-ssb-refs"
+	ssb "github.com/ssbc/go-ssb-refs"
 	"github.com/ugorji/go/codec"
-	refs "go.mindeco.de/ssb-refs"
-	ssb "go.mindeco.de/ssb-refs"
 	"golang.org/x/crypto/ed25519"
 	"golang.org/x/crypto/nacl/auth"
 )
