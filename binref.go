@@ -11,7 +11,7 @@ import (
 	"github.com/ugorji/go/codec"
 	"golang.org/x/crypto/ed25519"
 
-	refs "go.mindeco.de/ssb-refs"
+	refs "github.com/ssbc/go-ssb-refs"
 )
 
 type RefType uint

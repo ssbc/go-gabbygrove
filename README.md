@@ -4,7 +4,7 @@ SPDX-FileCopyrightText: 2021 Henry Bubert
 SPDX-License-Identifier: Unlicense
 -->
 
-# Gabby Grove for Go [![GoDoc](https://godoc.org/go.mindeco.de/ssb-gabbygrove?status.svg)](https://godoc.org/go.mindeco.de/ssb-gabbygrove) [![builds.sr.ht status](https://builds.sr.ht/~cryptix/go-gabbygrove.svg)](https://builds.sr.ht/~cryptix/go-gabbygrove?)
+# Gabby Grove for Go [![GoDoc](https://godoc.org/github.com/ssbc/go-gabbygrove?status.svg)](https://godoc.org/github.com/ssbc/go-gabbygrove) [![builds.sr.ht status](https://builds.sr.ht/~cryptix/go-gabbygrove.svg)](https://builds.sr.ht/~cryptix/go-gabbygrove?)
 
 This strives to be an easier implementation of https://spec.scuttlebutt.nz/feed/datamodel.html feeds.
 
