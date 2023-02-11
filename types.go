@@ -15,8 +15,6 @@ import (
 	"net/url"
 	"time"
 
-	"go.mindeco.de/encodedTime"
-
 	"github.com/pkg/errors"
 	refs "github.com/ssbc/go-ssb-refs"
 	ssb "github.com/ssbc/go-ssb-refs"
@@ -236,7 +234,7 @@ func (tr *Transfer) ValueContent() *ssb.Value {
 	msg.Sequence = int64(evt.Sequence)
 	msg.Hash = "gabbygrove-v1"
 	msg.Signature = base64.StdEncoding.EncodeToString(tr.Signature) + ".cbor.sig.ed25519"
-	msg.Timestamp = encodedTime.Millisecs(tr.Claimed())
+	msg.Timestamp = refs.Millisecs(tr.Claimed())
 	switch evt.Content.Type {
 	case ContentTypeArbitrary:
 		v, err := json.Marshal(tr.Content)
